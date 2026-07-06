@@ -9,13 +9,15 @@ and `banksheets-harness`.
 ## What it does
 
 Each plugin owns one `plugin.meta.toml`; each harness repo owns one `harness.toml`.
-From these, `harness-kit gen` renders byte-stable, `_generated`-marked manifests:
+From these, `harness-kit gen` renders byte-stable manifests — the per-plugin ones carry a
+`_generated` marker; `marketplace.json` is regenerated wholesale:
 
-- `.claude-plugin/marketplace.json` — repo-level, lists every plugin
-- `plugins/<name>/.claude-plugin/plugin.json`
-- `plugins/<name>/.codex-plugin/plugin.json`
+- `.claude-plugin/marketplace.json` — repo-level, lists every plugin (no marker)
+- `plugins/<name>/.claude-plugin/plugin.json` — `_generated`-marked
+- `plugins/<name>/.codex-plugin/plugin.json` — `_generated`-marked
 
-`harness-kit gen --check` exits 1 if anything is stale, so manifests can't drift.
+`harness-kit gen --check` exits 1 if anything is stale — including orphaned vendored code — so
+manifests can't drift.
 
 ## Usage in a harness repo
 
@@ -25,6 +27,7 @@ From these, `harness-kit gen` renders byte-stable, `_generated`-marked manifests
 name = "smorinlabs-harness"
 description = "Public cross-platform (Claude Code + Codex) plugin marketplace for smorinlabs"
 version = "0.1.0"
+# vendor_namespace = "smorinlabs_harness"  # only if a plugin declares [vendor]
 
 [marketplace.owner]
 name = "Steve Morin"
@@ -41,8 +44,9 @@ keywords = ["…"]
 ```
 
 ```bash
-harness-kit gen           # write/update manifests
-harness-kit gen --check   # CI: fail if stale
+harness-kit gen              # write/update manifests
+harness-kit gen --check      # CI: fail if stale
+harness-kit gen --root PATH  # target a repo root (default: cwd)
 ```
 
 Plugins are markdown-only by default (any number of skills under `skills/`). A plugin

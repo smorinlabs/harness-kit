@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+import tomllib
 from pathlib import Path
 
 from harness_kit import manifests
@@ -18,14 +19,23 @@ def main(argv: list[str] | None = None) -> int:
     gen.add_argument("--root", default=".", help="harness repo root (default: cwd)")
     args = parser.parse_args(argv)
 
-    if args.command == "gen":
-        root = Path(args.root).resolve()
+    # args.command is always "gen" here (single, required subcommand).
+    root = Path(args.root).resolve()
+    try:
         changed = manifests.write_all(root, dry_run=args.check)
-        if args.check and changed:
-            print("manifests out of date — run `harness-kit gen`", file=sys.stderr)
-            return 1
-        return 0
-    return 2
+    except FileNotFoundError as e:
+        print(f"harness-kit: file not found: {e.filename}", file=sys.stderr)
+        return 1
+    except KeyError as e:
+        print(f"harness-kit: missing required config key {e}", file=sys.stderr)
+        return 1
+    except (ValueError, tomllib.TOMLDecodeError) as e:
+        print(f"harness-kit: {e}", file=sys.stderr)
+        return 1
+    if args.check and changed:
+        print("manifests out of date — run `harness-kit gen`", file=sys.stderr)
+        return 1
+    return 0
 
 
 if __name__ == "__main__":
