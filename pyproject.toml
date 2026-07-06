@@ -1,0 +1,31 @@
+[project]
+name = "harness-kit"
+version = "0.1.0"
+description = "Shared anti-drift manifest generator for harness-style plugin marketplaces (Claude Code + Codex)"
+readme = "README.md"
+authors = [
+    { name = "Steve Morin", email = "steve.morin@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = []
+
+[project.scripts]
+harness-kit = "harness_kit.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.10.5,<0.11.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.3",
+    "ruff>=0.15.15",
+    "ty>=0.0.40",
+]
+
+[tool.ruff]
+line-length = 100
+
+[tool.pytest.ini_options]
+addopts = "-q"
+testpaths = ["tests"]
