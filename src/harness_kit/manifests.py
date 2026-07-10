@@ -77,12 +77,14 @@ def load_marketplace_meta(root: Path) -> MarketplaceMeta:
 
 
 def render_claude_plugin(m: PluginMeta) -> dict:
+    # Claude Code's plugin schema requires author as an object, not a string
+    # (caught by `skillsmith verify`: "Invalid input: expected object, received string").
     return {
         "_generated": _GEN_NOTE,
         "name": m.name,
         "version": m.version,
         "description": m.description,
-        "author": m.author,
+        "author": {"name": m.author} if m.author else {},
         "keywords": m.keywords,
     }
 

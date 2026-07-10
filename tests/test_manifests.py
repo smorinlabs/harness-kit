@@ -102,6 +102,7 @@ def test_render():
     cl = manifests.render_claude_plugin(meta)
     cx = manifests.render_codex_plugin(meta)
     assert cl["name"] == "demo" and cl["version"] == "0.1.0"
+    assert cl["author"] == {"name": "A"}  # object, per Claude Code's plugin schema
     assert cx["skills"] == "./skills/"
     assert cx["interface"]["displayName"] == "Demo"
 
