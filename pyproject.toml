@@ -13,14 +13,14 @@ dependencies = []
 harness-kit = "harness_kit.cli:main"
 
 [build-system]
-requires = ["uv_build>=0.10.5,<0.11.0"]
+requires = ["uv_build>=0.11.28,<0.12.0"]
 build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
     "pytest>=9.0.3",
-    "ruff>=0.15.15",
-    "ty>=0.0.40",
+    "ruff>=0.15.21",
+    "ty>=0.0.59",
 ]
 
 [tool.ruff]
