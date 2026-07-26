@@ -343,7 +343,9 @@ def vendor_shared_references(
                 )
             content = _shared_banner(src_rel).encode() + src_bytes
             dest = skill_md_path.parent / "references" / "_shared" / name
-            if not dest.resolve().is_relative_to(skill_md_path.parent.resolve()):
+            # Parent containment only: a symlinked destination FILE is handled
+            # below (check flags it, write replaces it without following it).
+            if not dest.parent.resolve().is_relative_to(skill_md_path.parent.resolve()):
                 raise ValueError(
                     f"plugin {m.name!r}: refusing to generate "
                     f"{dest.relative_to(root).as_posix()}: a symlinked parent redirects it "
