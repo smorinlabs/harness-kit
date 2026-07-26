@@ -320,13 +320,28 @@ def vendor_shared_references(
     orphan sweep — a declared copy is never prunable.
     """
     assert m.path is not None
+    root_r = root.resolve()  # the one path known real: every anchor is checked against it
     refs_dir = m.path / "references"
+    if refs_dir.is_symlink() or (
+        refs_dir.exists() and not refs_dir.resolve().is_relative_to(root_r)
+    ):
+        raise ValueError(
+            f"plugin {m.name!r}: references directory is a symlink or resolves "
+            "outside the repository"
+        )
     source_names = (
         {p.name for p in refs_dir.iterdir() if p.is_file()} if refs_dir.is_dir() else set()
     )
     check_freshness = m.generated_shared_references.get("check_freshness", True)
     changed = False
     for skill_md_path in sorted(m.path.glob("skills/*/SKILL.md")):
+        skill_dir = skill_md_path.parent
+        if skill_dir.is_symlink() or not skill_dir.resolve().is_relative_to(root_r):
+            raise ValueError(
+                f"plugin {m.name!r}: refusing to generate into "
+                f"{skill_dir.relative_to(root).as_posix()}: skill directory is a symlink "
+                "or resolves outside the repository"
+            )
         for name in _declared_shared_refs(m, skill_md_path, source_names):
             src = refs_dir / name
             src_rel = src.relative_to(root).as_posix()
@@ -386,8 +401,11 @@ def _prune_orphan_shared(root: Path, expected: set[Path], *, dry_run: bool) -> b
         if not f.is_file() or f in expected:
             continue
         # f.parents[2] is the skill dir; never delete through a symlinked
-        # references/ or _shared/ that redirects outside the skill tree.
+        # references/ or _shared/ that redirects outside the skill tree, and
+        # never through a symlinked skill/plugin dir that escapes the repo.
         if not f.resolve().is_relative_to(f.parents[2].resolve()):
+            continue
+        if not f.resolve().is_relative_to(root.resolve()):
             continue
         with f.open("rb") as fh:  # binary: a stray undecodable file must not crash the sweep
             owned = fh.readline().startswith(_SHARED_BANNER_PREFIX.encode())
