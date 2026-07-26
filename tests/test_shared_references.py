@@ -372,3 +372,47 @@ def test_prune_leaves_undecodable_stray_binary_alone(tmp_path: Path):
     stray.write_bytes(b"\xff\xfe\x00binary")
     assert not manifests.write_all(tmp_path)  # no crash, nothing changed
     assert stray.read_bytes() == b"\xff\xfe\x00binary"  # stray untouched
+
+
+# --- symlink confinement + scalar meta (PR #3 review, greptile P1s) ----------
+
+
+def test_symlinked_source_rejected(tmp_path: Path):
+    outside = tmp_path / "outside.md"
+    outside.write_text("secret bytes from outside the plugin\n")
+    pdir = _shared_repo(tmp_path)
+    ref = pdir / "references" / "context-triage.md"
+    ref.unlink()
+    ref.symlink_to(outside)
+    with pytest.raises(ValueError, match="symlink"):
+        manifests.write_all(tmp_path)
+
+
+def test_symlinked_destination_replaced_not_followed(tmp_path: Path):
+    pdir = _shared_repo(tmp_path)
+    manifests.write_all(tmp_path)
+    rendered = _dest(pdir).read_bytes()
+    victim = tmp_path / "victim.md"
+    victim.write_text("precious external content\n")
+    _dest(pdir).unlink()
+    _dest(pdir).symlink_to(victim)
+    manifests.write_all(tmp_path)
+    assert victim.read_text() == "precious external content\n"  # never written through
+    assert not _dest(pdir).is_symlink()  # link replaced by a real file
+    assert _dest(pdir).read_bytes() == rendered
+
+
+def test_check_flags_symlinked_destination(tmp_path: Path):
+    pdir = _shared_repo(tmp_path)
+    manifests.write_all(tmp_path)
+    twin = tmp_path / "twin.md"
+    twin.write_bytes(_dest(pdir).read_bytes())  # byte-identical target
+    _dest(pdir).unlink()
+    _dest(pdir).symlink_to(twin)
+    assert manifests.write_all(tmp_path, dry_run=True)  # a symlink is never a valid copy
+
+
+def test_meta_scalar_generated_shared_references_rejected(tmp_path: Path):
+    pdir = _shared_repo(tmp_path, meta_extra="generated_shared_references = true\n")
+    with pytest.raises(ValueError, match="table"):
+        manifests.load_meta(pdir / "plugin.meta.toml")
