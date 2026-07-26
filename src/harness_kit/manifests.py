@@ -343,6 +343,12 @@ def vendor_shared_references(
                 )
             content = _shared_banner(src_rel).encode() + src_bytes
             dest = skill_md_path.parent / "references" / "_shared" / name
+            if not dest.resolve().is_relative_to(skill_md_path.parent.resolve()):
+                raise ValueError(
+                    f"plugin {m.name!r}: refusing to generate "
+                    f"{dest.relative_to(root).as_posix()}: a symlinked parent redirects it "
+                    "outside the skill directory"
+                )
             if expected is not None:
                 expected.add(dest)
             if dry_run:
@@ -376,6 +382,10 @@ def _prune_orphan_shared(root: Path, expected: set[Path], *, dry_run: bool) -> b
     changed = False
     for f in sorted((root / "plugins").glob("*/skills/*/references/_shared/*")):
         if not f.is_file() or f in expected:
+            continue
+        # f.parents[2] is the skill dir; never delete through a symlinked
+        # references/ or _shared/ that redirects outside the skill tree.
+        if not f.resolve().is_relative_to(f.parents[2].resolve()):
             continue
         with f.open("rb") as fh:  # binary: a stray undecodable file must not crash the sweep
             owned = fh.readline().startswith(_SHARED_BANNER_PREFIX.encode())
