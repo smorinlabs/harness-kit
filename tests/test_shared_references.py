@@ -351,3 +351,24 @@ def test_write_mode_and_clean_check_stay_silent(tmp_path: Path, capsys):
     manifests.write_all(tmp_path, dry_run=True)  # clean check: silent
     out = capsys.readouterr()
     assert out.err == "" and out.out == ""
+
+
+# --- byte fidelity (PR #3 review) --------------------------------------------
+
+
+def test_crlf_source_bytes_preserved_verbatim(tmp_path: Path):
+    src_body = "# Title\r\nline two\r\n"
+    pdir = _shared_repo(tmp_path, sources={"context-triage.md": src_body})
+    manifests.write_all(tmp_path)
+    raw = _dest(pdir).read_bytes()
+    assert raw.endswith(src_body.encode())  # CRLF survives vendoring byte-for-byte
+    assert not manifests.write_all(tmp_path, dry_run=True)  # and stays clean
+
+
+def test_prune_leaves_undecodable_stray_binary_alone(tmp_path: Path):
+    pdir = _shared_repo(tmp_path)
+    manifests.write_all(tmp_path)
+    stray = _dest(pdir).parent / "image.md"
+    stray.write_bytes(b"\xff\xfe\x00binary")
+    assert not manifests.write_all(tmp_path)  # no crash, nothing changed
+    assert stray.read_bytes() == b"\xff\xfe\x00binary"  # stray untouched
