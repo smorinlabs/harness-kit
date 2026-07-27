@@ -165,6 +165,29 @@ def test_case_mismatched_entry_rejected_even_on_case_insensitive_fs(tmp_path: Pa
         manifests.write_all(tmp_path)
 
 
+def test_case_mismatched_source_file_rejected_even_on_case_insensitive_fs(tmp_path: Path):
+    # Mirror image of the mismatch above: here the entry/citation are correctly
+    # cased and the plugin-root SOURCE file on disk is the one mis-cased. The
+    # directory listing in `_declared_shared_refs` reflects the real on-disk
+    # name regardless of the filesystem's own case sensitivity, so this must
+    # reject exactly like a mis-cased declaration does.
+    _shared_repo(tmp_path, sources={"Context-Triage.md": TRIAGE_SRC})
+    with pytest.raises(ValueError, match="exact-case"):
+        manifests.write_all(tmp_path)
+
+
+def test_case_mismatched_citation_rejected(tmp_path: Path):
+    # SKILL.md declares the correctly-cased entry but cites a mis-cased path;
+    # the mis-cased citation itself was never declared, so this is caught by
+    # the cited-but-undeclared check, not the exact-case check above.
+    _shared_repo(
+        tmp_path,
+        skill_md=_skill_md("one", declare=("context-triage.md",), cite=("Context-Triage.md",)),
+    )
+    with pytest.raises(ValueError, match="not declared"):
+        manifests.write_all(tmp_path)
+
+
 def test_declared_but_never_cited_rejected(tmp_path: Path):
     _shared_repo(tmp_path, skill_md=_skill_md("one", declare=("context-triage.md",), cite=()))
     with pytest.raises(ValueError, match="never cited"):
@@ -343,6 +366,30 @@ def test_check_names_orphaned_destination(tmp_path: Path, capsys):
     err = capsys.readouterr().err
     assert "orphaned generated reference" in err
     assert "plugins/demo/skills/one/references/_shared/context-triage.md" in err
+
+
+def test_case_mismatched_destination_fails_check(tmp_path: Path, capsys):
+    # P33-TS05: the destination itself gets renamed to the wrong case on disk
+    # (simulating a mis-cased copy slipping past on a case-insensitive
+    # filesystem). Rename via a temp name first — a same-name case-only
+    # rename is a no-op on case-insensitive macOS unless routed through an
+    # intermediate name. Check mode must still fail: the orphan sweep lists
+    # the real (mis-cased) directory entry and compares it by exact Path
+    # identity against the expected (correctly-cased) destination, so the
+    # mismatch is reported as an orphan regardless of the filesystem's own
+    # case sensitivity.
+    pdir = _shared_repo(tmp_path)
+    manifests.write_all(tmp_path)
+    dest = _dest(pdir)
+    tmp_name = dest.with_name("context-triage.md.tmp")
+    dest.rename(tmp_name)
+    tmp_name.rename(dest.with_name("Context-Triage.md"))
+    assert manifests.write_all(
+        tmp_path, dry_run=True
+    )  # check fails on the case-mismatched destination
+    err = capsys.readouterr().err
+    assert "orphaned generated reference" in err
+    assert "plugins/demo/skills/one/references/_shared/Context-Triage.md" in err
 
 
 def test_write_mode_and_clean_check_stay_silent(tmp_path: Path, capsys):
