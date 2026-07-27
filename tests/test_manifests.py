@@ -122,7 +122,7 @@ def test_render_marketplace_parameterized():
         name="demo-harness", description="d", version="0.1.0", owner={"name": "A"}
     )
     metas = [
-        manifests.PluginMeta(name="a", version="0.1.0", description="da"),
+        manifests.PluginMeta(name="a", version="0.1.0", description="da", author="A"),
         manifests.PluginMeta(name="b", version="0.2.0", description="db"),
     ]
     mk = manifests.render_marketplace(metas, mkt)
@@ -131,6 +131,10 @@ def test_render_marketplace_parameterized():
     assert mk["metadata"] == {"description": "d", "version": "0.1.0"}
     assert [p["name"] for p in mk["plugins"]] == ["a", "b"]
     assert mk["plugins"][0]["source"] == "./plugins/a"
+    assert mk["plugins"][0]["author"] == {
+        "name": "A"
+    }  # object, per Claude Code's marketplace schema
+    assert mk["plugins"][1]["author"] == {}  # no author -> empty object, not ""
 
 
 def test_write_all_markdown_only_multiskill(tmp_path: Path):

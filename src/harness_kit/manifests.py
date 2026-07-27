@@ -151,7 +151,8 @@ def render_marketplace(metas: list[PluginMeta], mkt: MarketplaceMeta) -> dict:
                 "source": f"./plugins/{m.name}",
                 "description": m.description,
                 "version": m.version,
-                "author": m.author,
+                # Claude Code's marketplace schema requires author as an object, not a string.
+                "author": {"name": m.author} if m.author else {},
                 "keywords": m.keywords,
             }
             for m in metas
