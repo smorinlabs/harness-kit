@@ -2,8 +2,8 @@
 
 Shared, anti-drift manifest generator for **harness**-style plugin marketplaces
 (Claude Code + Codex). Extracted from
-[`smorin-harness`](https://github.com/smorin/smorin-harness) so the generator is
-*depended on, never copied* — used across `smorin-harness`, `smorinlabs-harness`,
+[`smorin-skills`](https://github.com/smorin/smorin-skills) so the generator is
+*depended on, never copied* — used across `smorin-skills`, `smorinlabs-skills`,
 and `banksheets-harness`.
 
 ## What it does
@@ -24,10 +24,10 @@ manifests can't drift.
 ```toml
 # harness.toml  (repo root — the marketplace identity)
 [marketplace]
-name = "smorinlabs-harness"
+name = "smorinlabs-skills"
 description = "Public cross-platform (Claude Code + Codex) plugin marketplace for smorinlabs"
 version = "0.1.0"
-# vendor_namespace = "smorinlabs_harness"  # only if a plugin declares [vendor]
+# vendor_namespace = "smorinlabs_skills"  # only if a plugin declares [vendor]
 
 [marketplace.owner]
 name = "Steve Morin"
