@@ -16,7 +16,7 @@ are byte-stable, and a regenerate-and-diff check (``--check``) guarantees they
 never drift — including a sweep that prunes orphaned vendored code when a plugin
 drops its ``[vendor]`` table or renames its skill.
 
-Extracted and generalized from ``smorin-harness`` so the generator is shared,
+Extracted and generalized from ``smorin-skills`` so the generator is shared,
 never copied. The marketplace identity (name/owner/metadata) is parameterized via
 ``harness.toml`` instead of being hard-coded to one repo.
 """
