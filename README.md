@@ -10,11 +10,29 @@ and `banksheets-harness`.
 
 Each plugin owns one `plugin.meta.toml`; each harness repo owns one `harness.toml`.
 From these, `harness-kit gen` renders byte-stable manifests — the per-plugin ones carry a
-`_generated` marker; `marketplace.json` is regenerated wholesale:
+`_generated` marker; the two `marketplace.json` files are regenerated wholesale:
 
-- `.claude-plugin/marketplace.json` — repo-level, lists every plugin (no marker)
+- `.claude-plugin/marketplace.json` — repo-level Claude marketplace, lists every plugin (no marker)
+- `.agents/plugins/marketplace.json` — repo-level Codex marketplace, lists every plugin
+  except those with `codex = false` (no marker)
 - `plugins/<name>/.claude-plugin/plugin.json` — `_generated`-marked
-- `plugins/<name>/.codex-plugin/plugin.json` — `_generated`-marked
+- `plugins/<name>/.codex-plugin/plugin.json` — `_generated`-marked; not generated (and
+  pruned if present) for a `codex = false` plugin
+
+The Codex marketplace makes a harness repo installable straight from GitHub:
+
+```bash
+codex plugin marketplace add <owner>/<repo>
+codex plugin add <plugin>@<marketplace-name>
+```
+
+Each Codex entry uses `source = {source: "local", path: "./plugins/<name>"}`,
+`policy = {installation: "AVAILABLE", authentication: "ON_INSTALL"}`, and the same
+`category` as the plugin's `.codex-plugin/plugin.json` (default `"Developer Tools"`,
+overridable with `[interface] category`). The schema follows
+[OpenAI's marketplace metadata docs](https://developers.openai.com/plugins/build/plugins#marketplace-metadata).
+Without this file, Codex falls back to reading `.claude-plugin/marketplace.json`, which
+cannot express install policy or category.
 
 `harness-kit gen --check` exits 1 if anything is stale — including orphaned vendored code — so
 manifests can't drift.
@@ -28,6 +46,7 @@ name = "smorinlabs-skills"
 description = "Public cross-platform (Claude Code + Codex) plugin marketplace for smorinlabs"
 version = "0.1.0"
 # vendor_namespace = "smorinlabs_skills"  # only if a plugin declares [vendor]
+# display_name = "smorinlabs skills"       # Codex marketplace title; default: title-cased name
 
 [marketplace.owner]
 name = "Steve Morin"
@@ -41,6 +60,7 @@ version = "0.1.0"
 description = "…"
 author = "Steve Morin"
 keywords = ["…"]
+# codex = false   # Claude-only: leave out of the Codex marketplace and skip .codex-plugin/
 ```
 
 ```bash

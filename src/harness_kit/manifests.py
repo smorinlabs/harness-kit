@@ -4,14 +4,17 @@ Each plugin owns one ``plugin.meta.toml``; each harness repo owns one
 ``harness.toml`` describing the marketplace. From these we render:
 
 - the repo-level Claude ``.claude-plugin/marketplace.json`` (lists all plugins),
+- the repo-level Codex ``.agents/plugins/marketplace.json`` (lists every plugin
+  that has not opted out with ``codex = false``),
 - each plugin's ``.claude-plugin/plugin.json``,
-- each plugin's ``.codex-plugin/plugin.json``,
+- each plugin's ``.codex-plugin/plugin.json`` (omitted, and pruned, for a
+  ``codex = false`` plugin),
 - each declared plugin-root shared reference, vendored into the citing skill at
   ``skills/<skill>/references/_shared/<name>.md`` (banner + source bytes) so a
   skill folder copied on its own still resolves what it cites.
 
-Per-plugin manifests carry a ``_generated`` marker; the repo-level
-``marketplace.json`` is regenerated wholesale (no marker). All generated files
+Per-plugin manifests carry a ``_generated`` marker; the two repo-level
+``marketplace.json`` files are regenerated wholesale (no marker). All generated files
 are byte-stable, and a regenerate-and-diff check (``--check``) guarantees they
 never drift — including a sweep that prunes orphaned vendored code when a plugin
 drops its ``[vendor]`` table or renames its skill.
@@ -44,6 +47,7 @@ class PluginMeta:
     interface: dict = field(default_factory=dict)
     vendor: dict = field(default_factory=dict)
     generated_shared_references: dict = field(default_factory=dict)
+    codex: bool = True
     path: Path | None = None
 
 
@@ -54,6 +58,7 @@ class MarketplaceMeta:
     version: str
     owner: dict = field(default_factory=dict)
     vendor_namespace: str = ""
+    display_name: str = ""
 
 
 _META_KEYS = {
@@ -65,6 +70,7 @@ _META_KEYS = {
     "interface",
     "vendor",
     "generated_shared_references",
+    "codex",
 }
 _GSR_KEYS = {"check_freshness"}
 
@@ -87,6 +93,8 @@ def load_meta(meta_path: Path) -> PluginMeta:
         raise ValueError(
             f"{meta_path}: [generated_shared_references] check_freshness must be a boolean"
         )
+    if not isinstance(data.get("codex", True), bool):
+        raise ValueError(f"{meta_path}: codex must be a boolean")  # noqa: TRY004
     return PluginMeta(
         name=data["name"],
         version=data["version"],
@@ -96,6 +104,7 @@ def load_meta(meta_path: Path) -> PluginMeta:
         interface=dict(data.get("interface", {})),
         vendor=dict(data.get("vendor", {})),
         generated_shared_references=gsr,
+        codex=data.get("codex", True),
         path=meta_path.parent,
     )
 
@@ -109,6 +118,7 @@ def load_marketplace_meta(root: Path) -> MarketplaceMeta:
         version=m["version"],
         owner=dict(m.get("owner", {})),
         vendor_namespace=m.get("vendor_namespace", ""),
+        display_name=m.get("display_name", ""),
     )
 
 
@@ -158,6 +168,25 @@ def render_marketplace(metas: list[PluginMeta], mkt: MarketplaceMeta) -> dict:
                 "keywords": m.keywords,
             }
             for m in metas
+        ],
+    }
+
+
+def render_codex_marketplace(metas: list[PluginMeta], mkt: MarketplaceMeta) -> dict:
+    # Schema: https://developers.openai.com/plugins/build/plugins#marketplace-metadata
+    return {
+        "name": mkt.name,
+        "interface": {"displayName": mkt.display_name or mkt.name.replace("-", " ").title()},
+        "plugins": [
+            {
+                "name": m.name,
+                "source": {"source": "local", "path": f"./plugins/{m.name}"},
+                "policy": {"installation": "AVAILABLE", "authentication": "ON_INSTALL"},
+                # Same category as the plugin's own .codex-plugin/plugin.json.
+                "category": render_codex_plugin(m)["interface"]["category"],
+            }
+            for m in metas
+            if m.codex
         ],
     }
 
@@ -463,11 +492,15 @@ def write_all(root: Path, *, dry_run: bool = False) -> bool:
             _dumps(render_claude_plugin(m)),
             dry_run=dry_run,
         )
-        changed |= _write_if_changed(
-            m.path / ".codex-plugin" / "plugin.json",
-            _dumps(render_codex_plugin(m)),
-            dry_run=dry_run,
-        )
+        codex_manifest = m.path / ".codex-plugin" / "plugin.json"
+        if m.codex:
+            changed |= _write_if_changed(
+                codex_manifest, _dumps(render_codex_plugin(m)), dry_run=dry_run
+            )
+        elif codex_manifest.exists():
+            changed = True
+            if not dry_run:
+                codex_manifest.unlink()
         changed |= vendor_plugin(root, m, mkt.vendor_namespace, dry_run=dry_run)
         changed |= vendor_shared_references(root, m, expected_shared, dry_run=dry_run)
         if m.vendor:
@@ -478,6 +511,11 @@ def write_all(root: Path, *, dry_run: bool = False) -> bool:
     changed |= _write_if_changed(
         root / ".claude-plugin" / "marketplace.json",
         _dumps(render_marketplace(metas, mkt)),
+        dry_run=dry_run,
+    )
+    changed |= _write_if_changed(
+        root / ".agents" / "plugins" / "marketplace.json",
+        _dumps(render_codex_marketplace(metas, mkt)),
         dry_run=dry_run,
     )
     return changed
