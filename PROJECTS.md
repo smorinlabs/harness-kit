@@ -1,6 +1,6 @@
 # harness-kit Projects
 
-## [~] Project P02: Codex-only hook files (v0.5.0)
+## [x] Project P02: Codex-only hook files (v0.5.0)
 **Goal/Requirement**: a plugin can give Codex its own hook file(s), because Claude Code and
 Codex both load `hooks/hooks.json` by default and a hook command that names its harness
 cannot be shared.
@@ -20,7 +20,7 @@ cannot be shared.
 - [x] [P02-TS02] A path or a list renders into the Codex manifest only
 - [x] [P02-TS03] A path without `./`, with `..`, an empty list, or a non-string raises
 - [x] [P02-T01] `load_meta` and `render_codex_plugin` in `manifests.py`; README updated
-- [ ] [P02-T02] Release v0.5.0; `bitrot-sanitation-skill` pins `tag = "v0.5.0"`
+- [x] [P02-T02] Release v0.5.0; `bitrot-sanitation-skill` pins `tag = "v0.5.0"`
 - [x] Regression Test Status: full suite green
 
 ### Automated Verification
