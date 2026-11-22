@@ -266,3 +266,36 @@ def test_vendor_requires_namespace(tmp_path: Path):
     meta = manifests.load_meta(pl / "plugin.meta.toml")
     with pytest.raises(ValueError):
         manifests.vendor_plugin(tmp_path, meta, "")
+
+
+def _meta_with(tmp_path: Path, extra: str) -> Path:
+    p = tmp_path / "plugin.meta.toml"
+    p.write_text('name="demo"\nversion="0.1.0"\ndescription="d"\n' + extra)
+    return p
+
+
+def test_codex_hooks_absent_omits_hooks_key(tmp_path: Path):
+    m = manifests.load_meta(_meta_with(tmp_path, ""))
+    assert "hooks" not in manifests.render_codex_plugin(m)
+
+
+@pytest.mark.parametrize(
+    "toml_value, expected",
+    [
+        ('"./hooks/codex-hooks.json"', "./hooks/codex-hooks.json"),
+        ('["./hooks/a.json", "./hooks/b.json"]', ["./hooks/a.json", "./hooks/b.json"]),
+    ],
+)
+def test_codex_hooks_rendered_into_codex_manifest_only(tmp_path: Path, toml_value, expected):
+    m = manifests.load_meta(_meta_with(tmp_path, f"codex_hooks = {toml_value}\n"))
+    assert manifests.render_codex_plugin(m)["hooks"] == expected
+    assert "hooks" not in manifests.render_claude_plugin(m)
+
+
+@pytest.mark.parametrize(
+    "toml_value",
+    ['"hooks/codex.json"', '"./../x.json"', '"./hooks/../../x.json"', "[]", "3", '["./a.json", 3]'],
+)
+def test_codex_hooks_invalid_raises(tmp_path: Path, toml_value):
+    with pytest.raises(ValueError, match="codex_hooks"):
+        manifests.load_meta(_meta_with(tmp_path, f"codex_hooks = {toml_value}\n"))

@@ -48,6 +48,7 @@ class PluginMeta:
     vendor: dict = field(default_factory=dict)
     generated_shared_references: dict = field(default_factory=dict)
     codex: bool = True
+    codex_hooks: str | list[str] | None = None
     path: Path | None = None
 
 
@@ -71,8 +72,27 @@ _META_KEYS = {
     "vendor",
     "generated_shared_references",
     "codex",
+    "codex_hooks",
 }
 _GSR_KEYS = {"check_freshness"}
+
+
+def _check_codex_hooks(meta_path: Path, value: object) -> str | list[str]:
+    """Codex accepts a ./-prefixed path, or a list of them, inside the plugin root."""
+    if isinstance(value, str):
+        paths = [value]
+    elif isinstance(value, list) and value and all(isinstance(p, str) for p in value):
+        paths = [str(p) for p in value]
+    else:
+        raise ValueError(
+            f"{meta_path}: codex_hooks must be a ./-prefixed path or a non-empty list of them"
+        )
+    for p in paths:
+        if not p.startswith("./") or ".." in Path(p).parts:
+            raise ValueError(
+                f"{meta_path}: codex_hooks path {p!r} must start with ./ and stay inside the plugin"
+            )
+    return paths[0] if isinstance(value, str) else paths
 
 
 def load_meta(meta_path: Path) -> PluginMeta:
@@ -95,6 +115,9 @@ def load_meta(meta_path: Path) -> PluginMeta:
         )
     if not isinstance(data.get("codex", True), bool):
         raise ValueError(f"{meta_path}: codex must be a boolean")  # noqa: TRY004
+    codex_hooks = (
+        _check_codex_hooks(meta_path, data["codex_hooks"]) if "codex_hooks" in data else None
+    )
     return PluginMeta(
         name=data["name"],
         version=data["version"],
@@ -105,6 +128,7 @@ def load_meta(meta_path: Path) -> PluginMeta:
         vendor=dict(data.get("vendor", {})),
         generated_shared_references=gsr,
         codex=data.get("codex", True),
+        codex_hooks=codex_hooks,
         path=meta_path.parent,
     )
 
@@ -142,7 +166,7 @@ def render_codex_plugin(m: PluginMeta) -> dict:
         "category": "Developer Tools",
     }
     interface.update(m.interface)
-    return {
+    out = {
         "_generated": _GEN_NOTE,
         "name": m.name,
         "version": m.version,
@@ -150,6 +174,11 @@ def render_codex_plugin(m: PluginMeta) -> dict:
         "skills": "./skills/",
         "interface": interface,
     }
+    if m.codex_hooks is not None:
+        # Codex uses manifest hooks instead of the default hooks/hooks.json,
+        # which Claude Code also loads.
+        out["hooks"] = m.codex_hooks
+    return out
 
 
 def render_marketplace(metas: list[PluginMeta], mkt: MarketplaceMeta) -> dict:
