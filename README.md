@@ -17,7 +17,9 @@ From these, `harness-kit gen` renders byte-stable manifests — the per-plugin o
   except those with `codex = false` (no marker)
 - `plugins/<name>/.claude-plugin/plugin.json` — `_generated`-marked
 - `plugins/<name>/.codex-plugin/plugin.json` — `_generated`-marked; not generated (and
-  pruned if present) for a `codex = false` plugin
+  pruned if present) for a `codex = false` plugin. With `codex_hooks` set, it carries a
+  `hooks` entry, so Codex loads those files instead of the default `hooks/hooks.json`
+  (which Claude Code also loads)
 
 The Codex marketplace makes a harness repo installable straight from GitHub:
 
@@ -61,6 +63,7 @@ description = "…"
 author = "Steve Morin"
 keywords = ["…"]
 # codex = false   # Claude-only: leave out of the Codex marketplace and skip .codex-plugin/
+# codex_hooks = "./hooks/codex-hooks.json"   # Codex-only hook file(s): a ./-prefixed path or a list
 ```
 
 ```bash

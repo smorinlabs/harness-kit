@@ -1,5 +1,31 @@
 # harness-kit Projects
 
+## [~] Project P02: Codex-only hook files (v0.5.0)
+**Goal/Requirement**: a plugin can give Codex its own hook file(s), because Claude Code and
+Codex both load `hooks/hooks.json` by default and a hook command that names its harness
+cannot be shared.
+- `plugin.meta.toml` `codex_hooks`: a `./`-prefixed path, or a non-empty list of them, inside
+  the plugin root.
+- When set, `.codex-plugin/plugin.json` gets `"hooks": <value>`. Codex then uses those files
+  instead of `hooks/hooks.json` (learn.chatgpt.com/docs/hooks, "Plugin-bundled hooks").
+- The Claude manifest is unchanged.
+- First consumer: `smorinlabs/bitrot-sanitation-skill` (its design D-1).
+
+**Out of Scope**
+- Inline hook objects in the manifest.
+- Checking that the named files exist.
+
+### Tests & Tasks
+- [x] [P02-TS01] Absent `codex_hooks` leaves the Codex manifest without `hooks`
+- [x] [P02-TS02] A path or a list renders into the Codex manifest only
+- [x] [P02-TS03] A path without `./`, with `..`, an empty list, or a non-string raises
+- [x] [P02-T01] `load_meta` and `render_codex_plugin` in `manifests.py`; README updated
+- [ ] [P02-T02] Release v0.5.0; `bitrot-sanitation-skill` pins `tag = "v0.5.0"`
+- [x] Regression Test Status: full suite green
+
+### Automated Verification
+- `just all` succeeds (fmt, lint, typecheck, test)
+
 ## [x] Project P01: Generate the Codex marketplace manifest (v0.4.0)
 **Goal/Requirement**: `harness-kit gen` writes the repo-level Codex marketplace
 `.agents/plugins/marketplace.json` from the same single source of truth as the Claude
