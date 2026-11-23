@@ -1,5 +1,21 @@
 # harness-kit Projects
 
+## [x] Project P03: Group Dependabot updates into one PR (no release)
+**Goal/Requirement**: Dependabot opens one weekly PR for the `all-dependencies`
+multi-ecosystem group instead of separate per-ecosystem PRs.
+- Remove `open-pull-requests-limit` from every `updates` entry in the group.
+
+**Out of Scope**
+- Changing schedules, cooldowns, labels, or security-update groups.
+
+### Tests & Tasks
+- [x] [P03-T01] Remove `open-pull-requests-limit` from the `uv` and `github-actions` entries
+- [x] [P03-T02] Comment in `.github/dependabot.yml` explaining why the key must stay absent
+- [ ] Regression Test Status: next Monday's Dependabot run opens one combined PR
+
+### Automated Verification
+- `.github/dependabot.yml` validates against the `vendor.dependabot` schema
+
 ## [x] Project P02: Codex-only hook files (v0.5.0)
 **Goal/Requirement**: a plugin can give Codex its own hook file(s), because Claude Code and
 Codex both load `hooks/hooks.json` by default and a hook command that names its harness
