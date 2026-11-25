@@ -1,5 +1,33 @@
 # harness-kit Projects
 
+## [~] Project P04: Antigravity plugin manifests, managed hooks, and workspace discovery (v0.6.0)
+**Goal/Requirement**: `harness-kit gen` generates native Antigravity (`agy`) manifests and workspace
+discovery alongside Claude Code and Codex from the same single source of truth.
+- Per-plugin `.antigravity-plugin/plugin.json` (`$schema: https://antigravity.google/schemas/v1/plugin.json`),
+  recording harness-kit generation and hook-ownership metadata under `extensions["harness-kit"]` so
+  `agy plugin validate --strict` passes with zero errors and zero warnings.
+- `plugin.meta.toml` `antigravity_hooks`: copies a `./`-prefixed Antigravity-format hooks source file to
+  `<plugin>/hooks.json` with safe ownership-tracked pruning when removed or opted out.
+- `plugin.meta.toml` `antigravity = false` opt-out and optional `[antigravity]` override table.
+- Repo-level `.agents/plugins.json` listing all Antigravity-capable plugins.
+- `gen --check` fails when any Antigravity artifact is missing or stale.
+
+**Out of Scope**
+- Merging Claude/Codex hook schemas into Antigravity's named-hook format automatically.
+- Non-local plugin sources in `.agents/plugins.json`.
+
+### Tests & Tasks
+- [x] [P04-TS01] Generates `.antigravity-plugin/plugin.json` and `.agents/plugins.json` and passes `agy plugin validate --strict --json`
+- [x] [P04-TS02] `antigravity_hooks` stages `<plugin>/hooks.json`, rejects invalid paths, and prunes only harness-kit-owned files
+- [x] [P04-TS03] `antigravity = false` omits the plugin from `.agents/plugins.json` and prunes generated artifacts
+- [x] [P04-T01] `manifests.py`, `tests/test_antigravity.py`, and `README.md` updated
+- [ ] [P04-T02] Release v0.6.0; `smorinlabs-skills` and `bitrot-sanitation-skill` pin `tag = "v0.6.0"`
+- [x] Regression Test Status: full suite green
+
+### Automated Verification
+- `just all` succeeds (fmt, lint, typecheck, test)
+- `agy plugin validate --strict --json` passes with 0 errors and 0 warnings
+
 ## [x] Project P03: Group Dependabot updates into one PR (no release)
 **Goal/Requirement**: Dependabot opens one weekly PR for the `all-dependencies`
 multi-ecosystem group instead of separate per-ecosystem PRs.
