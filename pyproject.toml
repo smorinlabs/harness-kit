@@ -1,7 +1,7 @@
 [project]
 name = "harness-kit"
-version = "0.5.0"
-description = "Shared anti-drift manifest generator for harness-style plugin marketplaces (Claude Code + Codex)"
+version = "0.6.0"
+description = "Shared anti-drift manifest generator for harness-style plugin marketplaces (Claude Code + Codex + Antigravity)"
 readme = "README.md"
 authors = [
     { name = "Steve Morin", email = "steve.morin@gmail.com" }
